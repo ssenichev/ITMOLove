@@ -11,7 +11,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 
-def setup_browser(login_url: str, login: str, password: str):
+def setup_browser(login_url: str, login: str, password: str) -> webdriver:
     """
     Создаем инстанс бразуера и логинимся в ису. Драйвер, который функция возвращает используем во всех запросах
     :param login_url:
