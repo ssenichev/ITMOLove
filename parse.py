@@ -90,11 +90,7 @@ def get_student_info(isu: str, driver: webdriver, timeout: int):
         program = match.group(1)
     else:
         program = None
-    return course, faculty, program
-
-
-driver = setup_browser(login_url="https://isu.ifmo.ru/", login="367167", password="praisetheGod")
-print(get_student_info(isu="371471", driver=driver, timeout=3))
-print(get_student_info(isu="367167", driver=driver, timeout=3))
-print(get_student_info(isu="335234", driver=driver, timeout=3))
-driver.quit()
+    # parse name
+    name = soup.find_all("span", {"class": "text-semibold"})[0].get_text().split()
+    name = name[0] + " " + name[1]
+    return course, faculty, program, name

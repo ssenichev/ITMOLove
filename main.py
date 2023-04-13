@@ -5,7 +5,8 @@ import pandas as pd
 import requests
 import telebot
 import sqlite3 as sq
-from token import token
+import parse
+from hardcode import *
 
 bot = telebot.TeleBot(token)
 db = sq.connect('grinder.db', check_same_thread=False)
@@ -14,16 +15,21 @@ cursor = db.cursor()
 
 def isu_parse(message):
     isu = message.text
-    # тут парсинг или другое что-то
-    confirmation = bot.send_message(message.chat.id, "Верны ли ваши данные:")
-    # вывести данные
-    bot.register_next_step_handler(confirmation, _isu_parse, isu)
+    driver = parse.setup_browser(login_url="https://isu.ifmo.ru/", login=isu_username, password=isu_password)
+    course, faculty, program, name = parse.get_student_info(isu=isu, driver=driver, timeout=3)
+
+    bot.send_message(message.chat.id, f"Имя: {name}\n"
+                                      f"Факультет: {faculty}\n"
+                                      f"ОП: {program}\n"
+                                      f"Курс: {course}")
+
+    confirmation = bot.send_message(message.chat.id, "Верны ли ваши данные?")
+    bot.register_next_step_handler(confirmation, _isu_parse, isu, course, faculty, program, name)
 
 
-def _isu_parse(message, isu: str):
-    if message.text == r'Да':
-        cursor.execute("UPDATE main SET ISU =? WHERE tg_id =?", (int(isu), message.chat.id))
-        db.commit()
+def _isu_parse(message, isu, course, faculty, program, name):
+    if message.text == 'Да' or message.text == "да":
+        cursor.execute("UPDATE main SET (ISU, faculty, major, grade) =(?, ?, ?, ?) WHERE tg_id =?", (int(isu), faculty, program, course, message.chat.id))
         set_gender(message)
 
     else:
@@ -42,7 +48,6 @@ def set_gender(message):
 @bot.callback_query_handler(func=lambda call: call.data in ['male', 'female', 'trans'])
 def _set_gender(call):
     cursor.execute("UPDATE main SET gender =? WHERE tg_id =?", (call.data, call.message.chat.id))
-    db.commit()
     set_ed_level(call.message)
 
 
@@ -65,6 +70,7 @@ def _set_ed_level(call):
 def add_bio(message):
     cursor.execute("UPDATE main SET bio =? WHERE tg_id =?", (message.text, message.chat.id))
     db.commit()
+    add_profile_photo(message)
 
 
 @bot.message_handler(content_types=['photo'])
@@ -85,7 +91,6 @@ def start(message):
 
     params = (message.chat.id, str(message.chat.username))
     cursor.execute("INSERT INTO main (tg_id, tg_username) VALUES (?, ?)", params)
-    db.commit()
 
     isu = bot.send_message(message.chat.id, "Введите ваш номер ИСУ")
     bot.register_next_step_handler(isu, isu_parse)
