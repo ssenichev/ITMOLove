@@ -5,9 +5,9 @@ import pandas as pd
 import requests
 import telebot
 import sqlite3 as sq
+from token import token
 
-bot = telebot.TeleBot("6226339713:AAE1iQPoZu4eYQ5xsoqpA2jtKajGtEvnNAk")
-# temp_df = pd.Series(index=['tg_id', 'tg_username', 'ISU', 'faculty', 'major', 'grade', 'gender', 'photo', 'bio'])
+bot = telebot.TeleBot(token)
 db = sq.connect('grinder.db', check_same_thread=False)
 cursor = db.cursor()
 
@@ -20,7 +20,7 @@ def isu_parse(message):
     bot.register_next_step_handler(confirmation, _isu_parse, isu)
 
 
-def _isu_parse(message, isu):
+def _isu_parse(message, isu: str):
     if message.text == r'Да':
         cursor.execute("UPDATE main SET ISU =? WHERE tg_id =?", (int(isu), message.chat.id))
         db.commit()
@@ -47,11 +47,11 @@ def _set_gender(call):
 
 
 def set_ed_level(message):
-    gender_markup = telebot.types.InlineKeyboardMarkup()
-    gender_markup.add(telebot.types.InlineKeyboardButton('Бакалавриат', callback_data='bachelor'),
-                      telebot.types.InlineKeyboardButton('Магистратура', callback_data='master'),
-                      telebot.types.InlineKeyboardButton('Аспирантура', callback_data='xz'))
-    bot.send_message(message.chat.id, text='Уровень вашего образования?', reply_markup=gender_markup)
+    education_markup = telebot.types.InlineKeyboardMarkup()
+    education_markup.add(telebot.types.InlineKeyboardButton('Бакалавриат', callback_data='bachelor'),
+                         telebot.types.InlineKeyboardButton('Магистратура', callback_data='master'),
+                         telebot.types.InlineKeyboardButton('Аспирантура', callback_data='xz'))
+    bot.send_message(message.chat.id, text='Уровень вашего образования?', reply_markup=education_markup)
 
 
 @bot.callback_query_handler(func=lambda call: call.data in ['bachelor', 'master', 'xz'])
