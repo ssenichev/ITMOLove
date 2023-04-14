@@ -7,6 +7,7 @@ import telebot
 import sqlite3 as sq
 import parse
 from hardcode import *
+from photoservice import *
 
 bot = telebot.TeleBot(token)
 db = sq.connect('grinder.db', check_same_thread=False)
