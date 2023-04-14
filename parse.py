@@ -52,9 +52,6 @@ def get_student_info(isu: str, driver: webdriver, timeout: int):
     driver.find_element(By.ID, "f50").send_keys(isu)
     driver.find_element(By.ID, "f50").send_keys(Keys.RETURN)
 
-    # просто ебанутый костыль
-    sleep(timeout)
-
     try:
         element_present = EC.presence_of_element_located((By.ID, "PERSON_MAIN_INFO"))
         WebDriverWait(driver, timeout).until(element_present)

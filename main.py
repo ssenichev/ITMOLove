@@ -15,25 +15,41 @@ cursor = db.cursor()
 
 def isu_parse(message):
     isu = message.text
-    driver = parse.setup_browser(login_url="https://isu.ifmo.ru/", login=isu_username, password=isu_password)
-    course, faculty, program, name = parse.get_student_info(isu=isu, driver=driver, timeout=3)
+    if len(isu) == 6:
+        driver = parse.setup_browser(login_url="https://isu.ifmo.ru/", login=isu_username, password=isu_password)
+        course, faculty, program, name = parse.get_student_info(isu=isu, driver=driver, timeout=3)
 
-    bot.send_message(message.chat.id, f"Имя: {name}\n"
-                                      f"Факультет: {faculty}\n"
-                                      f"ОП: {program}\n"
-                                      f"Курс: {course}")
+        bot.send_message(message.chat.id, f"Имя: {name}\n"
+                                          f"Факультет: {faculty}\n"
+                                          f"ОП: {program}\n"
+                                          f"Курс: {course}")
 
-    confirmation = bot.send_message(message.chat.id, "Верны ли ваши данные?")
-    bot.register_next_step_handler(confirmation, _isu_parse, isu, course, faculty, program, name)
+        params = (message.chat.id, isu, course, faculty, program, name)
+        cursor.execute("INSERT INTO temp_isu (tg_id, isu, course, faculty, program, name) VALUES (?, ?, ?, ?, ?, ?)", params)
+        db.commit()
 
-
-def _isu_parse(message, isu, course, faculty, program, name):
-    if message.text == 'Да' or message.text == "да":
-        cursor.execute("UPDATE main SET (ISU, faculty, major, grade) =(?, ?, ?, ?) WHERE tg_id =?", (int(isu), faculty, program, course, message.chat.id))
-        set_gender(message)
+        confirmation_markup = telebot.types.InlineKeyboardMarkup()
+        confirmation_markup.add(telebot.types.InlineKeyboardButton('Да', callback_data='isu_verification|yes'),
+                                telebot.types.InlineKeyboardButton('Нет', callback_data='isu_verification|no'))
+        bot.send_message(message.chat.id, "Верны ли ваши данные?", reply_markup=confirmation_markup)
 
     else:
-        isu = bot.send_message(message.chat.id, "Введите ваш номер ИСУ")
+        isu = bot.send_message(message.chat.id, "Введите корректный номер ИСУ")
+        bot.register_next_step_handler(isu, isu_parse)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('isu_verification'))
+def isu_verification(call):
+    if call.data == 'isu_verification|yes':
+        cursor.execute("SELECT tg_id, isu, course, faculty, program, name FROM temp_isu WHERE tg_id='148249969'")
+        tg_id, isu, course, faculty, program, name = cursor.fetchone()
+
+        cursor.execute("UPDATE main SET (ISU, faculty, major, grade) =(?, ?, ?, ?) WHERE tg_id =?",
+                       (int(isu), faculty, program, course, call.message.chat.id))
+        set_gender(call.message)
+
+    elif call.data == 'isu_verification|no':
+        isu = bot.send_message(call.message.chat.id, "Введите ваш номер ИСУ")
         bot.register_next_step_handler(isu, isu_parse)
 
 
