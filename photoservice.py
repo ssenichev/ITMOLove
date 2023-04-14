@@ -1,11 +1,10 @@
 import telebot
 import os
 import random
+from main import bot
 
-# bot = telebot.TeleBot()
 
 
-@bot.message_handler(content_types=['photo'])
 def download_photos(message):
     """
     Asks user to upload multiple photos and stores it in directory called res
